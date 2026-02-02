@@ -159,6 +159,8 @@ Example Response (simplified)
 
   
 
+ To run tests: ddev artisan test 
+
 🧠 Implementation Details
 -------------------------
 
