@@ -47,7 +47,7 @@ Organization Relationships API
     
      1. Clone the repository
     bash
-    git clone <repository-url>
+    git clone git@github.com:ErikEgl/org-relations-ddev.git
     cd organization-relationships-api
     
 
