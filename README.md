@@ -1,210 +1,109 @@
 Organization Relationships API
-    
-    A RESTful API built with Laravel 12 for storing, managing, and querying hierarchical relationships between organizations.
-    
-    The API is designed to handle complex organizational structures, including multi-level hierarchies and many-to-many relationships, while providing a simple and efficient way to retrieve all related entities (parents, daughters, and sisters).
-    
-    ---
-    
-     🚀 Features
-    
-    - Recursive Organization Creation  
-      Add deeply nested organizational structures in a single POST request.
-    
-    - Many-to-Many Relationships  
-      An organization can have:
-      - multiple parents  
-      - multiple daughters  
-    
-    - Automatic Relationship Discovery
-      - Parents – organizations above the current one  
-      - Daughters – organizations below the current one  
-      - Sisters – organizations that share at least one common parent  
-    
-    - Optimized Results
-      - Returns a flattened list of all related organizations  
-      - Alphabetically sorted  
-      - Duplicate-free  
-      - Supports pagination
-    
-    - Transactional Safety
-      - All recursive inserts are wrapped in database transactions  
-      - Guarantees atomicity and data integrity
-    
-    ---
-    
-     🛠 Technical Stack
-    
-    - Framework: Laravel 12  
-    - Language: PHP 8.3+  
-    - Database: MySQL / MariaDB  
-    - Environment: DDEV  
-    - ORM: Eloquent  
-    
-    ---
-    
-     📦 Installation & Setup
-    
-     1. Clone the repository
-    bash
-    git clone git@github.com:ErikEgl/org-relations-ddev.git
-    cd organization-relationships-api
-    
+A RESTful API built with Laravel 12 for storing, managing, and querying hierarchical relationships between organizations.
 
- 2\. Start DDEV
+The service handles complex structures, including multi-level hierarchies and many-to-many relationships (multiple parents and multiple daughters), while providing an efficient way to retrieve all related entities (parents, daughters, and sisters).
 
-    ddev start
-    
+🚀 Features
+Recursive Organization Creation: Add deeply nested structures in a single POST request.
 
- 3\. Install PHP dependencies
+Many-to-Many Relationships: Support for multiple parents and multiple daughters.
 
-    ddev composer install
-    
+Automatic Relationship Discovery:
 
- 4\. Configure environment
+Parents: Organizations above the current one.
 
-Copy .env.example to .env if needed and ensure database settings are correct (DDEV handles this by default).
+Daughters: Organizations below the current one.
 
- 5\. Run migrations
+Sisters: Organizations sharing at least one common parent.
 
-    ddev artisan migrate
-    
+Optimized Results: Flattened, duplicate-free list, alphabetically sorted with pagination support (up to 100 rows).
 
- 6\. Install API scaffolding (if not already installed)
+Transactional Safety: All recursive operations are wrapped in database transactions to ensure data integrity.
 
-    ddev artisan install:api
-    
+🛠 Technical Stack
+Framework: Laravel 12
 
-  
+Language: PHP 8.3+
 
+Database: MySQL / MariaDB
+
+Environment: DDEV
+
+Testing: PHPUnit
+
+📦 Installation & Setup
+1. Prerequisites
+Ensure you have Docker and DDEV installed on your system.
+
+Docker Installation Guide
+
+DDEV Installation Guide
+
+2. Clone the repository
+
+git clone https://github.com/ErikEgl/org-relations-ddev.git
+cd org-relations-ddev
+3. Initialize Environment
+If you are running the project for the first time or from a fresh clone, run these commands:
+
+
+# Configure DDEV for the project
+ddev config --project-type=laravel --docroot=public
+
+# Start the environment
+ddev start
+
+# Install PHP dependencies
+ddev composer install
+
+# Configure environment variables
+cp .env.example .env
+ddev artisan key:generate
+
+# Install API scaffolding (Sanctum/Routes)
+ddev artisan install:api
+
+# Run database migrations
+ddev artisan migrate
 📡 API Usage
-------------
+1. Add Organizations (Recursive POST)
+Endpoint: POST /api/organizations
 
- 1\. Add Organizations (Recursive POST)
+Example Request:
 
-Endpoint
-
-    POST /api/organizations
-    
-
-Description  
-Creates an organization and its full hierarchy recursively.  
-If an organization already exists, it will be reused and linked instead of duplicated.
-
-Example Request
-
-    curl -X POST http://org-relations-ddev.ddev.site/api/organizations \
-      -H "Content-Type: application/json" \
-      -d '{
-        "orgname": "Paradise Island",
+curl -X POST http://org-relations-ddev.ddev.site/api/organizations \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "org_name": "Paradise Island",
+    "daughters": [
+      {
+        "org_name": "Banana tree",
         "daughters": [
-          {
-            "orgname": "Banana tree",
-            "daughters": [
-              { "orgname": "Black Banana" }
-            ]
-          }
+          { "org_name": "Black Banana" }
         ]
-      }'
-    
-
-Behavior
-
-   Creates all missing organizations
-   Links parents and daughters
-   Prevents duplicate relationships
-   Runs inside a database transaction
-
-  
-
- 2\. Get Organization Relations (GET)
-
-Endpoint
-
-    GET /api/organizations/{orgname}/relations
-    
-
-Description  
-Returns all related organizations for the given organization:
-
-   parents
-   daughters
-   sisters
-
-Results are:
-
-   flattened into a single list
-   alphabetically sorted
-   paginated
-
-Example Request
-
-    curl -X GET "http://org-relations-ddev.ddev.site/api/organizations/Black%20Banana/relations"
-    
-
-Example Response (simplified)
-
-    {
-      "data": [
-        "Banana tree",
-        "Paradise Island"
-      ],
-      "meta": {
-        "currentpage": 1,
-        "perpage": 10,
-        "total": 2
       }
-    }
-    
+    ]
+  }'
+2. Get Organization Relations (GET)
+Endpoint: GET /api/organizations/{org_name}/relations
 
-  
+Example Request:
 
- To run tests: ddev artisan test 
 
+curl -X GET "http://org-relations-ddev.ddev.site/api/organizations/Black%20Banana/relations" \
+     -H "Accept: application/json"
+✅ Testing
+To ensure everything is working correctly, run the automated feature tests:
+
+
+ddev artisan test
 🧠 Implementation Details
--------------------------
+Recursive Processing: Organizations are processed level by level. Existing organizations are identified by their unique org_name and linked accordingly using firstOrCreate.
 
-   Recursive Processing
-    
-       Organizations and their daughters are processed recursively
-       Each level is stored and linked automatically
-   Database Design
-    
-       organizations table stores unique organizations
-       Pivot table (e.g. organizationrelationships) stores many-to-many links
-   Data Integrity
-    
-       Uses database transactions
-       Prevents partial inserts on failure
-   Efficient Queries
-    
-       Uses Eloquent relationships and collections
-       Merges parents, daughters, and sisters
-       Removes duplicates before sorting and pagination
+Relationship Mapping: Uses a self-referencing many-to-many relationship via a pivot table (organization_relations).
 
-  
-
-📈 Future Improvements (Ideas)
-------------------------------
-
-   GraphQL endpoint
-   Caching for relation queries
-   Cycle detection and prevention
-   Soft deletes for organizations
-   Role-based access control (RBAC)
-   OpenAPI / Swagger documentation
-
-  
-
-📄 License
-----------
-
-This project is open-source and available under the MIT License.
-
-  
+Sister Logic: Implemented by fetching all daughters of the organization's parents, excluding the organization itself.
 
 👤 Author
----------
-
-Built with ❤️ using Laravel 12  
-Feel free to fork, extend, and contribute.
+Built by Erik for the coding challenge.
